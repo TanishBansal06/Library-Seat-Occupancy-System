@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TIET Library Seat Occupancy System</title>
+  <!-- Google Fonts: Outfit (Body/Headings) & DM Mono (Monospace Log) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Outfit:wght@100..900&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg: #f0ede8;
+      --paper: #faf8f5;
+      --ink: #1a1714;
+      --muted: #8a8580;
+      --green: #2d6a4f;
+      --green-bg: #d8f3dc;
+      --amber: #b45309;
+      --amber-bg: #fef3c7;
+      --red: #9b1c1c;
+      --red-bg: #fee2e2;
+      --border: #ddd9d3;
+      --tiet-yellow: #f59e0b;
+      --shadow: 0 4px 12px -2px rgba(26, 23, 20, 0.06), 0 2px 6px -1px rgba(26, 23, 20, 0.03);
+      --shadow-hover: 0 16px 24px -6px rgba(26, 23, 20, 0.12), 0 6px 12px -2px rgba(26, 23, 20, 0.06);
+      --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: 'DM Mono', SFMono-Regular, Consolas, "Liberation Mono", Courier, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--ink);
+      font-family: var(--font-sans);
+      line-height: 1.5;
+      padding-bottom: 60px;
+    }
+
+    /* Header Styling */
+    header {
+      background-color: var(--ink);
+      color: var(--paper);
+      padding: 24px 5%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 4px solid var(--tiet-yellow);
+      box-shadow: var(--shadow);
+    }
+
+    .header-left h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+
+    .header-left .subtitle {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .badge {
+      background-color: var(--tiet-yellow);
+      color: var(--ink);
+      font-family: var(--font-sans);
+      font-weight: 800;
+      font-size: 0.85rem;
+      padding: 6px 12px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+    }
+
+    .live-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+
+    .live-dot {
+      width: 10px;
+      height: 10px;
+      background-color: #10b981;
+      border-radius: 50%;
+      display: inline-block;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      }
+      70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+      }
+      100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+      }
+    }
+
+    /* Main Layout Grid */
+    .dashboard-container {
+      max-width: 1400px;
+      margin: 40px auto;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 32px;
+    }
+
+    @media (min-width: 1024px) {
+      .dashboard-container {
+        grid-template-columns: 7fr 3fr;
+      }
+    }
+
+    /* Left Side: Summary + Floors */
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    /* Summary Strip */
+    .summary-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    .summary-card {
+      background-color: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .summary-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+    }
+
+    .summary-card.total::before { background-color: var(--ink); }
+    .summary-card.available::before { background-color: var(--green); }
+    .summary-card.occupied::before { background-color: var(--red); }
+
+    .summary-label {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .summary-value {
+      font-size: 2.2rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .summary-card.total .summary-value { color: var(--ink); }
+    .summary-card.available .summary-value { color: var(--green); }
+    .summary-card.occupied .summary-value { color: var(--red); }
+
+    /* Floors Grid */
+    .floors-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 24px;
+    }
+
+    .floor-card {
+      background-color: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+      animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .floor-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .floor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .floor-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .floor-subtitle {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* Badges / Pills */
+    .pill {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .pill-green { background-color: var(--green-bg); color: var(--green); }
+    .pill-amber { background-color: var(--amber-bg); color: var(--amber); }
+    .pill-red { background-color: var(--red-bg); color: var(--red); }
+    .pill-muted { background-color: var(--bg); color: var(--muted); }
+
+    /* Progress bar */
+    .progress-container {
+      width: 100%;
+      height: 8px;
+      background-color: var(--bg);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s ease;
+    }
+
+    .progress-bar.green { background-color: var(--green); }
+    .progress-bar.amber { background-color: var(--amber); }
+    .progress-bar.red { background-color: var(--red); }
+
+    /* Stats row */
+    .floor-stats-row {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px dashed var(--border);
+      padding-bottom: 12px;
+    }
+
+    .floor-stats-row span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Dynamic Seat Dot Grid */
+    .seat-grid-container {
+      background-color: #fcfbfa;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      min-height: 100px;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    .seat-grid {
+      display: grid;
+      grid-template-columns: repeat(20, 1fr);
+      gap: 3px;
+    }
+
+    .seat-dot {
+      aspect-ratio: 1;
+      border-radius: 2px;
+      background-color: var(--green);
+      transition: background-color 0.2s ease, transform 0.1s ease;
+      cursor: help;
+    }
+
+    .seat-dot.occupied {
+      background-color: var(--red);
+    }
+
+    .seat-dot:hover {
+      transform: scale(1.3);
+    }
+
+    /* Card Footer - Seats modifier */
+    .floor-footer {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 4px;
+    }
+
+    .floor-footer label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-family: var(--font-mono);
+    }
+
+    .floor-footer input {
+      width: 70px;
+      background-color: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--ink);
+    }
+
+    .floor-footer input:focus {
+      outline: none;
+      border-color: var(--muted);
+    }
+
+    .btn-apply {
+      background-color: var(--ink);
+      color: var(--paper);
+      border: none;
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .btn-apply:hover {
+      background-color: #332e29;
+    }
+
+    /* Right Side: Control Panel & Live Logs */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    /* Common Card Styles for Sidebar */
+    .sidebar-card {
+      background-color: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .sidebar-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--ink);
+      border-bottom: 2px solid var(--ink);
+      padding-bottom: 8px;
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Form Fields */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+
+    .select-input, .text-input {
+      width: 100%;
+      background-color: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+      color: var(--ink);
+      transition: border-color 0.2s ease;
+    }
+
+    .select-input:focus, .text-input:focus {
+      outline: none;
+      border-color: var(--ink);
+    }
+
+    .select-input option {
+      background-color: var(--paper);
+    }
+
+    /* Action Buttons Row */
+    .actions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: none;
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .btn-entry {
+      background-color: var(--green);
+      color: var(--paper);
+    }
+
+    .btn-entry:hover {
+      background-color: #224f3b;
+      transform: translateY(-1px);
+    }
+
+    .btn-exit {
+      background-color: var(--red);
+      color: var(--paper);
+    }
+
+    .btn-exit:hover {
+      background-color: #7f1717;
+      transform: translateY(-1px);
+    }
+
+    .btn-reset {
+      grid-column: span 2;
+      background-color: transparent;
+      color: var(--ink);
+      border: 1px solid var(--border);
+    }
+
+    .btn-reset:hover {
+      background-color: var(--bg);
+      border-color: var(--muted);
+    }
+
+    /* Terminal Console Log */
+    .terminal-box {
+      background-color: var(--ink);
+      border-radius: 8px;
+      padding: 16px;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      height: 320px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border: 1px solid #2a2521;
+      box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
+    }
+
+    .log-entry {
+      line-height: 1.4;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .log-time {
+      color: var(--muted);
+      margin-right: 8px;
+    }
+
+    .log-info { color: #38bdf8; }
+    .log-entry-action { color: #4ade80; }
+    .log-exit-action { color: #f87171; }
+    .log-system { color: #fbbf24; }
+    .log-error { color: #f87171; font-weight: bold; }
+
+    /* Custom Scrollbar for console and seat grid */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(26, 23, 20, 0.05);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(26, 23, 20, 0.2);
+      border-radius: 4px;
+    }
+    .terminal-box::-webkit-scrollbar-track {
+      background: rgba(255,255,255,0.02);
+    }
+    .terminal-box::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.15);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header>
+    <div class="header-left">
+      <h1>Library Seat Occupancy System</h1>
+      <div class="subtitle">UCS310 · DBMS PROJECT · 2025–26</div>
+    </div>
+    <div class="header-right">
+      <span class="badge">TIET UNIVERSITY</span>
+      <div class="live-status">
+        <span class="live-dot"></span>
+        LIVE
+      </div>
+    </div>
+  </header>
+
+  <main class="dashboard-container">
+    
+    <!-- Left Section: Aggregates + Floor Grid -->
+    <section class="main-content">
+      
+      <!-- Summary Strip (3 Cards) -->
+      <div class="summary-strip">
+        <div class="summary-card total">
+          <div class="summary-label">Total Library Capacity</div>
+          <div class="summary-value" id="agg-total">-</div>
+        </div>
+        <div class="summary-card available">
+          <div class="summary-label font-green">Available Seats</div>
+          <div class="summary-value" id="agg-available">-</div>
+        </div>
+        <div class="summary-card occupied">
+          <div class="summary-label font-red">Occupied Seats</div>
+          <div class="summary-value" id="agg-occupied">-</div>
+        </div>
+      </div>
+
+      <!-- Floor Cards Grid -->
+      <div class="floors-grid" id="floors-container">
+        <!-- Rendered dynamically via JavaScript -->
+        <div style="grid-column: 1/-1; text-align: center; color: var(--muted); padding: 40px 0;">
+          Connecting to database...
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Right Section: System Controls & Transaction Logs -->
+    <aside class="sidebar">
+      
+      <!-- Control Panel -->
+      <div class="sidebar-card">
+        <div class="sidebar-title">
+          <span>System Controls</span>
+        </div>
+
+        <!-- Student Search & Selection -->
+        <div class="form-group">
+          <label class="form-label" for="student-id-input">Student ID</label>
+          <input type="text" 
+                 id="student-id-input" 
+                 class="text-input" 
+                 list="student-list" 
+                 placeholder="Select or Type Student ID (e.g. STU101)" 
+                 value="STU101">
+          <datalist id="student-list">
+            <option value="STU101">STU101 - Ayush (CSE)</option>
+            <option value="STU102">STU102 - Rahul (CSE)</option>
+            <option value="STU103">STU103 - Tanish (CSE)</option>
+          </datalist>
+        </div>
+
+        <!-- Floor Selection -->
+        <div class="form-group">
+          <label class="form-label" for="floor-select">Target Floor</label>
+          <select id="floor-select" class="select-input">
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="actions-grid">
+          <button class="btn btn-entry" id="btn-entry">
+            <span>⟶ Student Entry</span>
+          </button>
+          <button class="btn btn-exit" id="btn-exit">
+            <span>⟵ Student Exit</span>
+          </button>
+          <button class="btn btn-reset" id="btn-reset">
+            <span>↺ Reset System</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Logs Console -->
+      <div class="sidebar-card">
+        <div class="sidebar-title">
+          <span>Live Console Log</span>
+        </div>
+        <div class="terminal-box" id="console-log">
+          <div class="log-entry"><span class="log-time">[00:00:00]</span><span class="log-info">Console initialized. Ready.</span></div>
+        </div>
+      </div>
+
+    </aside>
+  </main>
+
+  <script>
+    const API_BASE = 'http://localhost:3000/api';
+    
+    // UI elements
+    const floorsContainer = document.getElementById('floors-container');
+    const floorSelect = document.getElementById('floor-select');
+    const studentInput = document.getElementById('student-id-input');
+    const aggTotal = document.getElementById('agg-total');
+    const aggAvailable = document.getElementById('agg-available');
+    const aggOccupied = document.getElementById('agg-occupied');
+    const consoleLog = document.getElementById('console-log');
+    
+    const btnEntry = document.getElementById('btn-entry');
+    const btnExit = document.getElementById('btn-exit');
+    const btnReset = document.getElementById('btn-reset');
+
+    // Helper: Add log entry to custom terminal
+    function logMessage(text, type = 'info') {
+      const time = new Date().toTimeString().split(' ')[0];
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      
+      let typeClass = 'log-info';
+      if (type === 'entry') typeClass = 'log-entry-action';
+      if (type === 'exit') typeClass = 'log-exit-action';
+      if (type === 'system') typeClass = 'log-system';
+      if (type === 'error') typeClass = 'log-error';
+      
+      entry.innerHTML = `<span class="log-time">[${time}]</span><span class="${typeClass}">${text}</span>`;
+      
+      consoleLog.insertBefore(entry, consoleLog.firstChild);
+    }
+
+    // Helper to normalize keys to uppercase
+    function normalizeKeys(obj) {
+      if (Array.isArray(obj)) {
+        return obj.map(normalizeKeys);
+      }
+      if (obj !== null && typeof obj === 'object') {
+        return Object.keys(obj).reduce((acc, key) => {
+          acc[key.toUpperCase()] = normalizeKeys(obj[key]);
+          return acc;
+        }, {});
+      }
+      return obj;
+    }
+
+    // API Helper: Async fetching with try/catch
+    async function apiFetch(url, options = {}) {
+      try {
+        const response = await fetch(url, options);
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || data.details || `HTTP error! status: ${response.status}`);
+        }
+        return normalizeKeys(data);
+      } catch (err) {
+        logMessage(`[API ERROR] ${err.message}`, 'error');
+        throw err;
+      }
+    }
+
+    // Refresh overall data (called on load, scans, and updates)
+    async function refreshData() {
+      try {
+        // Fetch floors
+        const floors = await apiFetch(`${API_BASE}/floors`);
+        
+        // Populate Floor dropdown in Controls if empty
+        if (floorSelect.children.length === 0) {
+          floorSelect.innerHTML = floors
+            .map(f => `<option value="${f.FLOOR_ID}">${f.FLOOR_NAME} Floor</option>`)
+            .join('');
+        }
+
+        // Calculate aggregates
+        let total = 0;
+        let occupied = 0;
+        floors.forEach(f => {
+          total += f.TOTAL_SEATS;
+          occupied += f.OCCUPIED_SEATS;
+        });
+        
+        aggTotal.textContent = total;
+        aggOccupied.textContent = occupied;
+        aggAvailable.textContent = total - occupied;
+
+        // Fetch seat layouts in parallel for each floor using apiFetch for key normalization
+        const seatsPromises = floors.map(f => 
+          apiFetch(`${API_BASE}/seats/${f.FLOOR_ID}`)
+            .catch(err => {
+              console.error(`Failed to fetch seats for floor ${f.FLOOR_ID}`, err);
+              return [];
+            })
+        );
+        const floorsSeats = await Promise.all(seatsPromises);
+
+        // Render floor cards
+        renderFloors(floors, floorsSeats);
+      } catch (err) {
+        console.error('Refresh Error:', err);
+      }
+    }
+
+    // Render floor grid on UI
+    function renderFloors(floors, floorsSeats) {
+      floorsContainer.innerHTML = '';
+      
+      floors.forEach((floor, idx) => {
+        const seats = floorsSeats[idx];
+        const pct = Math.round((floor.OCCUPIED_SEATS / floor.TOTAL_SEATS) * 100) || 0;
+        
+        // Determine pill and bar colors
+        let statusText = 'AVAILABLE';
+        let colorClass = 'green';
+        let pillClass = 'pill-green';
+
+        if (floor.STATUS === 'CLOSED') {
+          statusText = 'CLOSED';
+          colorClass = 'muted';
+          pillClass = 'pill-muted';
+        } else if (pct >= 90) {
+          statusText = 'FULL';
+          colorClass = 'red';
+          pillClass = 'pill-red';
+        } else if (pct >= 60) {
+          statusText = 'FILLING FAST';
+          colorClass = 'amber';
+          pillClass = 'pill-amber';
+        }
+
+        const free = floor.TOTAL_SEATS - floor.OCCUPIED_SEATS;
+
+        // Build floor card element
+        const card = document.createElement('div');
+        card.className = 'floor-card';
+        card.style.animationDelay = `${idx * 0.05}s`;
+
+        // Render dots
+        let dotsHTML = '';
+        if (seats && seats.length > 0) {
+          dotsHTML = seats.map(s => {
+            const occ = s.STATUS === 'OCCUPIED';
+            return `<div class="seat-dot ${occ ? 'occupied' : ''}" title="Seat No: ${s.SEAT_NO} (${s.STATUS})"></div>`;
+          }).join('');
+        } else {
+          dotsHTML = `<div style="grid-column:1/-1; font-family:var(--font-mono); font-size:0.7rem; color:var(--muted); text-align:center; padding:10px 0;">No seat maps generated.</div>`;
+        }
+
+        card.innerHTML = `
+          <div class="floor-header">
+            <div>
+              <div class="floor-title">${floor.FLOOR_NAME} Floor</div>
+              <div class="floor-subtitle">Allocated from seat #1</div>
+            </div>
+            <span class="pill ${pillClass}">${statusText}</span>
+          </div>
+
+          <div class="progress-container">
+            <div class="progress-bar ${colorClass}" style="width: ${pct}%"></div>
+          </div>
+
+          <div class="floor-stats-row">
+            <span>▲ ${free} free</span>
+            <span>${pct}% occupied</span>
+            <span>▼ ${floor.OCCUPIED_SEATS} taken</span>
+          </div>
+
+          <div class="seat-grid-container">
+            <div class="seat-grid">
+              ${dotsHTML}
+            </div>
+          </div>
+
+          <div class="floor-footer">
+            <label for="capacity-${floor.FLOOR_ID}">Seats:</label>
+            <input type="number" id="capacity-${floor.FLOOR_ID}" value="${floor.TOTAL_SEATS}" min="1" max="500">
+            <button class="btn-apply" onclick="updateCapacity(${floor.FLOOR_ID}, 'capacity-${floor.FLOOR_ID}')">Apply</button>
+          </div>
+        `;
+        
+        floorsContainer.appendChild(card);
+      });
+    }
+
+    // Refresh the transaction logs list
+    async function refreshLogs() {
+      try {
+        const logs = await apiFetch(`${API_BASE}/log`);
+        // We output log entries if we have new ones, but to prevent duplicate entries, we can clear and re-display
+        // or just append only new ones. For simplicity and correctness, let's render the last 20 logs.
+        // We will preserve manual errors inside the list, but redraw the standard logs list
+        
+        // Find existing non-log rows or keep console-log clean
+        const currentLogs = Array.from(consoleLog.querySelectorAll('.log-entry'));
+        
+        // Let's filter out standard system entry/exit logs, but preserve custom console initialization or API errors.
+        const nonSystemLogs = currentLogs.filter(el => {
+          const txt = el.innerText;
+          return !txt.includes('entered') && !txt.includes('exited') && !txt.includes('Reset') && !txt.includes('Capacity updated');
+        });
+        
+        consoleLog.innerHTML = '';
+        
+        // Render current logs
+        logs.forEach(l => {
+          const entry = document.createElement('div');
+          entry.className = 'log-entry';
+          
+          let actionText = '';
+          let actionClass = 'log-info';
+          
+          if (l.SCAN_TYPE === 'ENTRY') {
+            actionText = `${l.STUDENT_NAME} (${l.STUDENT_ID}) entered ${l.FLOOR_NAME} floor`;
+            actionClass = 'log-entry-action';
+          } else if (l.SCAN_TYPE === 'EXIT') {
+            actionText = `${l.STUDENT_NAME} (${l.STUDENT_ID}) exited the library`;
+            actionClass = 'log-exit-action';
+          }
+          
+          entry.innerHTML = `<span class="log-time">[${l.SCAN_TIME}]</span><span class="${actionClass}">${actionText}</span>`;
+          consoleLog.appendChild(entry);
+        });
+
+        // Append non-system logs back
+        nonSystemLogs.forEach(el => consoleLog.appendChild(el));
+      } catch (err) {
+        console.error('Failed to refresh logs:', err);
+      }
+    }
+
+    // Entry Scan Action
+    btnEntry.addEventListener('click', async () => {
+      const studentId = studentInput.value.trim();
+      const floorId = floorSelect.value;
+
+      if (!studentId) {
+        logMessage('[ERROR] Please select or enter a student ID.', 'error');
+        return;
+      }
+
+      logMessage(`Requesting entry for ${studentId} on floor ${floorId}...`, 'system');
+
+      try {
+        const res = await apiFetch(`${API_BASE}/scan`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ student_id: studentId, scan_type: 'ENTRY', floor_id: floorId })
+        });
+        
+        if (res.success) {
+          logMessage(`Access Granted: ${studentId} checked in.`, 'entry');
+          await refreshData();
+          await refreshLogs();
+        }
+      } catch (err) {
+        // Error logged inside apiFetch
+      }
+    });
+
+    // Exit Scan Action
+    btnExit.addEventListener('click', async () => {
+      const studentId = studentInput.value.trim();
+
+      if (!studentId) {
+        logMessage('[ERROR] Please select or enter a student ID.', 'error');
+        return;
+      }
+
+      logMessage(`Requesting exit for ${studentId}...`, 'system');
+
+      try {
+        const res = await apiFetch(`${API_BASE}/scan`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ student_id: studentId, scan_type: 'EXIT' })
+        });
+        
+        if (res.success) {
+          logMessage(`Access Granted: ${studentId} checked out.`, 'exit');
+          await refreshData();
+          await refreshLogs();
+        }
+      } catch (err) {
+        // Error logged inside apiFetch
+      }
+    });
+
+    // Global Reset Action
+    btnReset.addEventListener('click', async () => {
+      if (!confirm('Are you sure you want to clear all occupancies, scan logs, and active seat allocations?')) {
+        return;
+      }
+      
+      logMessage('Sending global system reset request...', 'system');
+
+      try {
+        const res = await apiFetch(`${API_BASE}/reset`, {
+          method: 'POST'
+        });
+        
+        if (res.success) {
+          logMessage('System Reset completed. All seats are FREE.', 'system');
+          await refreshData();
+          // Clear log screen
+          consoleLog.innerHTML = '';
+          logMessage('Console cleared. System Reset completed.', 'system');
+        }
+      } catch (err) {
+        // Error logged inside apiFetch
+      }
+    });
+
+    // Apply capacity updates on floor
+    async function updateCapacity(floorId, inputId) {
+      const inputEl = document.getElementById(inputId);
+      const totalSeats = parseInt(inputEl.value, 10);
+      
+      if (isNaN(totalSeats) || totalSeats <= 0 || totalSeats > 500) {
+        logMessage(`[ERROR] Capacity must be a number between 1 and 500.`, 'error');
+        return;
+      }
+
+      logMessage(`Updating capacity for floor ${floorId} to ${totalSeats}...`, 'system');
+
+      try {
+        const res = await apiFetch(`${API_BASE}/floors/${floorId}/seats`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ total_seats: totalSeats })
+        });
+        
+        if (res.success) {
+          logMessage(`Capacity updated: Floor ${floorId} set to ${totalSeats}.`, 'system');
+          await refreshData();
+        }
+      } catch (err) {
+        // Error logged inside apiFetch
+      }
+    }
+
+    // Initialize System on load
+    window.addEventListener('DOMContentLoaded', async () => {
+      logMessage('Contacting server...', 'system');
+      try {
+        await refreshData();
+        await refreshLogs();
+        logMessage('TIET Library seat tracker fully online.', 'system');
+      } catch (err) {
+        logMessage('Initial sync failed. Verify backend node server is running and connected to Oracle DB.', 'error');
+      }
+
+      // Start 10-second polling refresh loop
+      setInterval(() => {
+        refreshData();
+      }, 10000);
+    });
+  </script>
+</body>
+</html>
