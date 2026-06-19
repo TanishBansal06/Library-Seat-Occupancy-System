@@ -663,9 +663,13 @@
   </main>
 
   <script>
-    const API_BASE = window.location.protocol === 'file:'
-      ? 'http://localhost:3000/api'
-      : `${window.location.origin}/api`;
+    const API_CANDIDATES = [
+      window.location.protocol === 'file:' ? null : `${window.location.origin}/api`,
+      'http://localhost:3000/api',
+      'http://localhost:3002/api'
+    ].filter((value, index, list) => value && list.indexOf(value) === index);
+
+    let API_BASE = null;
     
     // UI elements
     const floorsContainer = document.getElementById('floors-container');
@@ -711,11 +715,45 @@
       return obj;
     }
 
+    async function discoverApiBase() {
+      if (API_BASE) return API_BASE;
+
+      const failures = [];
+      for (const base of API_CANDIDATES) {
+        try {
+          const response = await fetch(`${base}/floors`);
+          if (response.ok) {
+            API_BASE = base;
+            logMessage(`Connected to backend at ${base}`, 'system');
+            return API_BASE;
+          }
+          failures.push(`${base} returned ${response.status}`);
+        } catch (err) {
+          failures.push(`${base} failed`);
+        }
+      }
+
+      throw new Error(`Backend not reachable. Tried: ${failures.join(', ')}`);
+    }
+
+    function showConnectionError(message) {
+      floorsContainer.innerHTML = `
+        <div style="grid-column: 1/-1; text-align: center; color: var(--red); padding: 40px 16px; font-weight: 700;">
+          Backend connection failed.
+          <div style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); font-weight: 400; margin-top: 8px;">
+            ${message}
+          </div>
+        </div>
+      `;
+    }
+
     // API Helper: Async fetching with try/catch
-    async function apiFetch(url, options = {}) {
+    async function apiFetch(endpoint, options = {}) {
       try {
+        const base = await discoverApiBase();
+        const url = `${base}${endpoint}`;
         const response = await fetch(url, options);
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
         if (!response.ok) {
           throw new Error(data.error || data.details || `HTTP error! status: ${response.status}`);
         }
@@ -730,7 +768,7 @@
     async function refreshData() {
       try {
         // Fetch floors
-        const floors = await apiFetch(`${API_BASE}/floors`);
+        const floors = await apiFetch('/floors');
         
         // Populate Floor dropdown in Controls if empty
         if (floorSelect.children.length === 0) {
@@ -753,7 +791,7 @@
 
         // Fetch seat layouts in parallel for each floor using apiFetch for key normalization
         const seatsPromises = floors.map(f => 
-          apiFetch(`${API_BASE}/seats/${f.FLOOR_ID}`)
+          apiFetch(`/seats/${f.FLOOR_ID}`)
             .catch(err => {
               console.error(`Failed to fetch seats for floor ${f.FLOOR_ID}`, err);
               return [];
@@ -765,6 +803,8 @@
         renderFloors(floors, floorsSeats);
       } catch (err) {
         console.error('Refresh Error:', err);
+        showConnectionError(err.message);
+        throw err;
       }
     }
 
@@ -852,7 +892,7 @@
     // Refresh the transaction logs list
     async function refreshLogs() {
       try {
-        const logs = await apiFetch(`${API_BASE}/log`);
+        const logs = await apiFetch('/log');
         // We output log entries if we have new ones, but to prevent duplicate entries, we can clear and re-display
         // or just append only new ones. For simplicity and correctness, let's render the last 20 logs.
         // We will preserve manual errors inside the list, but redraw the standard logs list
@@ -908,7 +948,7 @@
       logMessage(`Requesting entry for ${studentId} on floor ${floorId}...`, 'system');
 
       try {
-        const res = await apiFetch(`${API_BASE}/scan`, {
+        const res = await apiFetch('/scan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ student_id: studentId, scan_type: 'ENTRY', floor_id: floorId })
@@ -936,7 +976,7 @@
       logMessage(`Requesting exit for ${studentId}...`, 'system');
 
       try {
-        const res = await apiFetch(`${API_BASE}/scan`, {
+        const res = await apiFetch('/scan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ student_id: studentId, scan_type: 'EXIT' })
@@ -961,7 +1001,7 @@
       logMessage('Sending global system reset request...', 'system');
 
       try {
-        const res = await apiFetch(`${API_BASE}/reset`, {
+        const res = await apiFetch('/reset', {
           method: 'POST'
         });
         
@@ -990,7 +1030,7 @@
       logMessage(`Updating capacity for floor ${floorId} to ${totalSeats}...`, 'system');
 
       try {
-        const res = await apiFetch(`${API_BASE}/floors/${floorId}/seats`, {
+        const res = await apiFetch(`/floors/${floorId}/seats`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ total_seats: totalSeats })
