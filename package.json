@@ -1,0 +1,11 @@
+{
+  "name": "library-seat-occupancy-system",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TIET Library Seat Occupancy System",
+  "scripts": {
+    "install:backend": "npm install --prefix backend",
+    "start": "npm start --prefix backend",
+    "dev": "npm run dev --prefix backend"
+  }
+}

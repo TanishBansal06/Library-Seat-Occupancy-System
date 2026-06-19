@@ -66,7 +66,7 @@ Before setting up the project, make sure you have installed:
      ```
    - *If using Oracle 23c Free, the `DB_CONNECTION_STRING` is typically `localhost:1521/FREE` instead of `XE`.*
 
-4. Launch the Express server:
+4. Launch the Express server from the `backend` folder:
    ```bash
    npm start
    ```
@@ -74,15 +74,22 @@ Before setting up the project, make sure you have installed:
    ```text
    Oracle DB connection pool initialized in Thin Mode.
    TIET Library Seat Occupancy System API running on http://localhost:3000
+   Frontend dashboard available at http://localhost:3000
    ```
+
+You can also run the project from the repository root:
+```bash
+npm run install:backend
+npm start
+```
 
 ---
 
 ## Step 3: Frontend Dashboard Launch
 
-1. Locate the [index.html](frontend/index.html) file inside the `frontend` folder.
-2. Double-click to open it in your browser (Chrome, Edge, or Safari).
-3. The dashboard connects to the local Express server at `http://localhost:3000` and:
+1. Start the backend with `npm start`.
+2. Open `http://localhost:3000` in your browser.
+3. The dashboard connects to the local Express server and:
    - Displays real-time aggregate statistics (Total, Available, Occupied seats).
    - Renders a visually pleasing 20x10 seat matrix grid for each of the 5 floors. Green indicates a seat is free, while Red indicates it is occupied. Hovering over a seat reveals its seat number.
    - Features a student simulation panel to trigger scans. You can select one of the three seed students (Ayush, Rahul, Tanish) or enter a custom student ID, select a target floor, and trigger an **Entry Scan** or **Exit Scan**.

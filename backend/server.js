@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const path = require('path');
 const db = require('./db');
 
 // Load environment variables
@@ -13,6 +14,11 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+// Serve the frontend from the same origin as the API.
+// This avoids port conflicts with editor preview servers and CORS surprises.
+const frontendPath = path.join(__dirname, '..', 'frontend');
+app.use(express.static(frontendPath));
+
 // Initialize Database connection pool and start server
 async function startServer() {
   try {
@@ -20,6 +26,7 @@ async function startServer() {
     app.listen(PORT, () => {
       const mode = db.getIsMock && db.getIsMock() ? 'OFFLINE MOCK MODE (In-Memory Simulation)' : 'REAL ORACLE XE MODE';
       console.log(`TIET Library Seat Occupancy System API running on http://localhost:${PORT}`);
+      console.log(`Frontend dashboard available at http://localhost:${PORT}`);
       console.log(`System Mode: ${mode}`);
     });
   } catch (err) {
